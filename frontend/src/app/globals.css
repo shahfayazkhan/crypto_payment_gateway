@@ -1,0 +1,4 @@
+html, body { padding: 0; margin: 0; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes flashRow { from { background-color: rgba(59,130,246,0.28); } to { background-color: transparent; } }
+.row-flash { animation: flashRow 1.6s ease-out; }

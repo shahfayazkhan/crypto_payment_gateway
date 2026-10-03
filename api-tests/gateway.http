@@ -1,0 +1,145 @@
+### Crypto Payment Gateway — REST Client (VS Code) / JetBrains HTTP client
+@base = http://localhost:4000/api
+
+### Health + public chain/asset config
+GET {{base}}/health
+###
+GET {{base}}/meta
+
+### ── Auth ──────────────────────────────────────────────
+# @name adminLogin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@gateway.test", "password": "Passw0rd!" }
+
+###
+# @name clientLogin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "client@gateway.test", "password": "Passw0rd!" }
+
+###
+@admin = {{adminLogin.response.body.token}}
+@client = {{clientLogin.response.body.token}}
+
+### ── Client portal ─────────────────────────────────────
+GET {{base}}/client/account
+Authorization: Bearer {{client}}
+
+###
+GET {{base}}/client/wallets
+Authorization: Bearer {{client}}
+
+###
+GET {{base}}/client/deposits?limit=10
+Authorization: Bearer {{client}}
+
+###
+GET {{base}}/client/withdrawals/quote?asset=USDT_TRC20&amount=250
+Authorization: Bearer {{client}}
+
+###
+# @name newWithdrawal
+POST {{base}}/client/withdrawals
+Authorization: Bearer {{client}}
+Content-Type: application/json
+
+{ "asset": "USDT_TRC20", "amount": 250, "toAddress": "TPL66VK2gCXNCD7EJg9pgJRfqcRazjhUZY" }
+
+###
+POST {{base}}/client/withdrawals/{{newWithdrawal.response.body._id}}/cancel
+Authorization: Bearer {{client}}
+
+### ── Back office (finance / admin) ─────────────────────
+GET {{base}}/admin/stats
+Authorization: Bearer {{admin}}
+
+###
+GET {{base}}/admin/deposits?status=confirming
+Authorization: Bearer {{admin}}
+
+###
+GET {{base}}/admin/withdrawals?status=pending_review
+Authorization: Bearer {{admin}}
+
+###
+POST {{base}}/admin/withdrawals/{{newWithdrawal.response.body._id}}/approve
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "note": "KYC ok" }
+
+###
+GET {{base}}/admin/treasury
+Authorization: Bearer {{admin}}
+
+###
+POST {{base}}/admin/sweeps/run
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "force": true }
+
+###
+GET {{base}}/admin/sweeps
+Authorization: Bearer {{admin}}
+
+###
+GET {{base}}/admin/clients
+Authorization: Bearer {{admin}}
+
+###
+GET {{base}}/admin/webhooks
+Authorization: Bearer {{admin}}
+
+### ── Simulator (CHAIN_MODE=mock) ───────────────────────
+POST {{base}}/dev/simulate/deposit
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "mt5Login": 5100100, "asset": "USDT_TRC20", "amount": 1500 }
+
+###
+POST {{base}}/dev/simulate/deposit
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "mt5Login": 5100100, "asset": "BTC", "amount": 0.025 }
+
+###
+POST {{base}}/dev/simulate/burst
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "count": 10 }
+
+### Mine blocks instantly (speeds up confirmations)
+POST {{base}}/dev/chain/BTC/mine
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "blocks": 2 }
+
+###
+GET {{base}}/dev/chain
+Authorization: Bearer {{admin}}
+
+### Auto traffic on/off
+POST {{base}}/dev/traffic
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "enabled": true, "intervalMs": 4000 }
+
+###
+POST {{base}}/dev/fund-hot-wallets
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{}
+
+### Webhooks the gateway sent to the built-in sink
+GET {{base}}/dev/webhook-sink
+Authorization: Bearer {{admin}}

@@ -1,0 +1,54 @@
+# Infra for local development. Run the API/worker/frontend with npm (see README),
+# or uncomment the app services at the bottom to run everything in Docker.
+services:
+  mongo:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports: ["27017:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      # initialise the single-node replica set on first boot
+      test: >
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: [redis-data:/data]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports: ["5672:5672", "15672:15672"] # management UI → http://localhost:15672 (guest/guest)
+    volumes: [rabbit-data:/var/lib/rabbitmq]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      retries: 10
+
+  # api:
+  #   build: ./backend
+  #   env_file: ./backend/.env
+  #   environment:
+  #     MONGO_URI: mongodb://mongo:27017/crypto_gateway?replicaSet=rs0&directConnection=true
+  #     REDIS_URL: redis://redis:6379
+  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+  #     RUN_WORKERS_IN_API: "false"
+  #   ports: ["4000:4000"]
+  #   depends_on: { mongo: { condition: service_healthy }, rabbitmq: { condition: service_healthy }, redis: { condition: service_started } }
+  # worker:
+  #   build: ./backend
+  #   command: ["node", "src/worker.js"]
+  #   env_file: ./backend/.env
+  #   environment:
+  #     MONGO_URI: mongodb://mongo:27017/crypto_gateway?replicaSet=rs0&directConnection=true
+  #     REDIS_URL: redis://redis:6379
+  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+  #   depends_on: [api]
+
+volumes:
+  mongo-data:
+  redis-data:
+  rabbit-data:
